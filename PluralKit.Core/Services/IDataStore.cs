@@ -260,6 +260,10 @@ namespace PluralKit.Core {
         /// </summary>
         Task SetMemberGuildSettings(PKMember member, ulong guild, MemberGuildSettings settings);
 
+        Task<PKGroup> CreateGroup(PKSystem system, string name);
+        
+        Task<PKGroup> GetGroupByHid(string hid);
+
         /// <summary>
         /// Gets a message and its information by its ID.
         /// </summary>

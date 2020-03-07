@@ -41,6 +41,7 @@ namespace PluralKit.Bot
         public static Command MemberKeepProxy = new Command("member keepproxy", "member <member> keepproxy [on|off]", "Sets whether to include a member's proxy tags when proxying");
         public static Command MemberRandom = new Command("random", "random", "Looks up a random member from your system");
         public static Command MemberPrivacy = new Command("member privacy", "member <member> privacy [on|off]", "Sets whether a member is private or public");
+        public static Command GroupNew = new Command("group new", "group new <name>", "Creates a new member group");
         public static Command Switch = new Command("switch", "switch <member> [member 2] [member 3...]", "Registers a switch");
         public static Command SwitchOut = new Command("switch out", "switch out", "Registers a switch with no members");
         public static Command SwitchMove = new Command("switch move", "switch move <date/time>", "Moves the latest switch in time");
@@ -74,6 +75,8 @@ namespace PluralKit.Bot
         };
 
         public static Command[] SwitchCommands = {Switch, SwitchOut, SwitchMove, SwitchDelete};
+        
+        public static Command[] GroupCommands = {GroupNew};
 
         public static Command[] LogCommands = {LogChannel, LogEnable, LogDisable};
         
@@ -92,6 +95,8 @@ namespace PluralKit.Bot
                 return HandleMemberCommand(ctx);
             if (ctx.Match("switch", "sw"))
                 return HandleSwitchCommand(ctx);
+            if (ctx.Match("group", "g"))
+                return HandleGroupCommand(ctx);
             if (ctx.Match("ap", "autoproxy", "auto"))
                 return ctx.Execute<Autoproxy>(Autoproxy, m => m.AutoproxyRoot(ctx));
             if (ctx.Match("list", "l", "members"))
@@ -155,6 +160,14 @@ namespace PluralKit.Bot
             ctx.Reply(
                 $"{Emojis.Error} Unknown command `{ctx.PeekArgument().SanitizeMentions()}`. For a list of possible commands, see <https://pluralkit.me/commands>.");
             return Task.CompletedTask;
+        }
+
+        private async Task HandleGroupCommand(Context ctx)
+        {
+            if (ctx.Match("new", "create", "add"))
+                await ctx.Execute<Groups>(GroupNew, m => m.GroupNew(ctx));
+            else
+                await PrintCommandNotFoundError(ctx, GroupCommands);
         }
 
         private async Task HandleSystemCommand(Context ctx)

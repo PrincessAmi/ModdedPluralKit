@@ -263,6 +263,30 @@ namespace PluralKit.Core {
             await _cache.InvalidateSystem(member.System);
         }
 
+        public async Task<PKGroup> CreateGroup(PKSystem system, string name)
+        {
+            string hid;
+            do
+            {
+                hid = StringUtils.GenerateHid();
+            } while (await GetGroupByHid(hid) != null);
+
+            PKGroup group;
+            using (var conn = await _conn.Obtain())
+                group = await conn.QuerySingleAsync<PKGroup>(
+                    "insert into groups (system, hid, name) values (@System, @Hid, @Name) returning *",
+                    new {System = system.Id, Hid = hid, Name = name});
+
+            _logger.Information("Created group {Group}", group.Id);
+            return group;
+        }
+
+        public async Task<PKGroup> GetGroupByHid(string hid)
+        {
+            using var conn = await _conn.Obtain();
+            return await conn.QuerySingleOrDefaultAsync<PKGroup>("select * from groups where hid = @Hid", new { Hid = hid });
+        }
+
         public async Task<ulong> GetMemberMessageCount(PKMember member)
         {
             using (var conn = await _conn.Obtain())
