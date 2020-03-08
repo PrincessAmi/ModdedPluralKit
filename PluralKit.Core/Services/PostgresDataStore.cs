@@ -286,6 +286,12 @@ namespace PluralKit.Core {
             using var conn = await _conn.Obtain();
             return await conn.QuerySingleOrDefaultAsync<PKGroup>("select * from groups where hid = @Hid", new { Hid = hid });
         }
+        
+        public async Task<PKGroup> GetGroupByName(PKSystem system, string name)
+        {
+            using var conn = await _conn.Obtain();
+            return await conn.QuerySingleOrDefaultAsync<PKGroup>("select * from groups where system = @System and lower(name) = lower(@Name)", new { System = system.Id, Name = name });
+        }
 
         public async Task<ulong> GetMemberMessageCount(PKMember member)
         {

@@ -41,6 +41,7 @@ namespace PluralKit.Bot
         public static Command MemberKeepProxy = new Command("member keepproxy", "member <member> keepproxy [on|off]", "Sets whether to include a member's proxy tags when proxying");
         public static Command MemberRandom = new Command("random", "random", "Looks up a random member from your system");
         public static Command MemberPrivacy = new Command("member privacy", "member <member> privacy [on|off]", "Sets whether a member is private or public");
+        public static Command GroupInfo = new Command("group", "group <group>", "Looks up info about a group");
         public static Command GroupNew = new Command("group new", "group new <name>", "Creates a new member group");
         public static Command Switch = new Command("switch", "switch <member> [member 2] [member 3...]", "Registers a switch");
         public static Command SwitchOut = new Command("switch out", "switch out", "Registers a switch with no members");
@@ -68,15 +69,29 @@ namespace PluralKit.Bot
             SystemList, SystemFronter, SystemFrontHistory, SystemFrontPercent, SystemPrivacy, SystemProxy
         };
 
+        public static Command[] SystemTargetedCommands =
+        {
+            SystemInfo, SystemList, SystemFronter, SystemFrontHistory, SystemFrontPercent
+        };
+
         public static Command[] MemberCommands = {
             MemberInfo, MemberNew, MemberRename, MemberDisplayName, MemberServerName, MemberDesc, MemberPronouns,
             MemberColor, MemberBirthday, MemberProxy, MemberKeepProxy, MemberDelete, MemberAvatar, MemberServerAvatar,
             MemberRandom
         };
 
+        public static Command[] MemberTargetedCommands =
+        {
+            MemberInfo, MemberRename, MemberDisplayName, MemberServerName, MemberDesc, MemberPronouns,
+            MemberColor, MemberBirthday, MemberProxy, MemberKeepProxy, MemberDelete, MemberAvatar,
+            MemberServerAvatar
+        };
+
         public static Command[] SwitchCommands = {Switch, SwitchOut, SwitchMove, SwitchDelete};
         
-        public static Command[] GroupCommands = {GroupNew};
+        public static Command[] GroupCommands = {GroupInfo, GroupNew};
+        
+        public static Command[] GroupTargetedCommands = {GroupInfo};
 
         public static Command[] LogCommands = {LogChannel, LogEnable, LogDisable};
         
@@ -166,8 +181,20 @@ namespace PluralKit.Bot
         {
             if (ctx.Match("new", "create", "add"))
                 await ctx.Execute<Groups>(GroupNew, m => m.GroupNew(ctx));
+            else if (await ctx.MatchGroup() is PKGroup target)
+                await HandleGroupCommandTargeted(ctx, target);
+            else if (!ctx.HasNext())
+                await PrintCommandExpectedError(ctx, GroupCommands);
             else
-                await PrintCommandNotFoundError(ctx, GroupCommands);
+                await ctx.Reply($"{Emojis.Error} {ctx.CreateGroupNotFoundError(ctx.PopArgument())}");
+        }
+
+        private async Task HandleGroupCommandTargeted(Context ctx, PKGroup target)
+        {
+            if (!ctx.HasNext()) // Bare command
+                await ctx.Execute<Groups>(MemberInfo, m => m.GroupInfo(ctx, target));
+            else 
+                await PrintCommandNotFoundError(ctx, GroupTargetedCommands);
         }
 
         private async Task HandleSystemCommand(Context ctx)
@@ -226,7 +253,7 @@ namespace PluralKit.Bot
             var target = await ctx.MatchSystem();
             if (target == null)
             {
-                var list = CreatePotentialCommandList(SystemInfo, SystemNew, SystemRename, SystemTag, SystemDesc, SystemAvatar, SystemDelete, SystemTimezone, SystemList, SystemFronter, SystemFrontHistory, SystemFrontPercent);
+                var list = CreatePotentialCommandList(SystemCommands);
                 await ctx.Reply(
                     $"{Emojis.Error} {await CreateSystemNotFoundError(ctx)}\n\nPerhaps you meant to use one of the following commands?\n{list}");
             }
@@ -252,8 +279,7 @@ namespace PluralKit.Bot
             else if (!ctx.HasNext())
                 await ctx.Execute<System>(SystemInfo, m => m.Query(ctx, target));
             else
-                await PrintCommandNotFoundError(ctx, SystemList, SystemFronter, SystemFrontHistory, SystemFrontPercent,
-                    SystemInfo);
+                await PrintCommandNotFoundError(ctx, SystemTargetedCommands);
         }
         
         private async Task HandleMemberCommand(Context ctx)
@@ -265,8 +291,7 @@ namespace PluralKit.Bot
             else if (await ctx.MatchMember() is PKMember target)
                 await HandleMemberCommandTargeted(ctx, target);
             else if (!ctx.HasNext())
-                await PrintCommandExpectedError(ctx, MemberNew, MemberInfo, MemberRename, MemberDisplayName, MemberServerName, MemberDesc, MemberPronouns,
-                    MemberColor, MemberBirthday, MemberProxy, MemberDelete, MemberAvatar);
+                await PrintCommandExpectedError(ctx, MemberCommands);
             else
                 await ctx.Reply($"{Emojis.Error} {ctx.CreateMemberNotFoundError(ctx.PopArgument())}");
         }
@@ -307,7 +332,7 @@ namespace PluralKit.Bot
             else if (!ctx.HasNext()) // Bare command
                 await ctx.Execute<Member>(MemberInfo, m => m.ViewMember(ctx, target));
             else 
-                await PrintCommandNotFoundError(ctx, MemberInfo, MemberRename, MemberDisplayName, MemberServerName ,MemberDesc, MemberPronouns, MemberColor, MemberBirthday, MemberProxy, MemberDelete, MemberAvatar, SystemList);
+                await PrintCommandNotFoundError(ctx, MemberTargetedCommands);
         }
 
         private async Task HandleSwitchCommand(Context ctx)
@@ -323,7 +348,7 @@ namespace PluralKit.Bot
             else if (ctx.HasNext()) // there are following arguments
                 await ctx.Execute<Switch>(Switch, m => m.SwitchDo(ctx));
             else
-                await PrintCommandNotFoundError(ctx, Switch, SwitchOut, SwitchMove, SwitchDelete, SystemFronter, SystemFrontHistory);
+                await PrintCommandNotFoundError(ctx, SwitchCommands);
         }
 
         private async Task PrintCommandNotFoundError(Context ctx, params Command[] potentialCommands)

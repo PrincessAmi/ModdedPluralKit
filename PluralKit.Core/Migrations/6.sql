@@ -2,7 +2,7 @@
 create table groups
 (
     id            serial primary key,
-    system        serial                              not null references systems (id),
+    system        serial                              not null references systems (id) on delete cascade,
     hid           char(5) unique                      not null,
     name          text                                not null,
     description   text,
@@ -15,8 +15,9 @@ create table groups
 
 create table group_member
 (
-    group_id serial not null references groups (id),  -- "group_id" since "group" is a SQL keyword and I don't feel like quoting all the time
-    member   serial not null references members (id)
+    group_id serial not null references groups (id) on delete cascade,  -- "group_id" since "group" is a SQL keyword and I don't feel like quoting all the time
+    member   serial not null references members (id) on delete cascade,
+    primary key (group_id, member)
 );
 
 update info

@@ -2,6 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+
+using Dapper;
+
 using Discord;
 using Discord.WebSocket;
 
@@ -14,12 +17,14 @@ namespace PluralKit.Bot {
     public class EmbedService
     {
         private IDataStore _data;
+        private DbConnectionFactory _db;
         private DiscordShardedClient _client;
 
-        public EmbedService(DiscordShardedClient client, IDataStore data)
+        public EmbedService(DiscordShardedClient client, IDataStore data, DbConnectionFactory db)
         {
             _client = client;
             _data = data;
+            _db = db;
         }
 
         public async Task<Embed> CreateSystemEmbed(PKSystem system, LookupContext ctx) {
@@ -213,6 +218,23 @@ namespace PluralKit.Bot {
             }
 
             return Task.FromResult(eb.Build());
+        }
+
+        public async Task<Embed> CreateGroupEmbed(PKGroup group, PKSystem system, LookupContext ctx)
+        {
+            var eb = new EmbedBuilder()
+                .WithTitle(group.Name)
+                .WithFooter($"System ID: {system.Hid} | Group ID: {group.Hid} | Created on {DateTimeFormats.ZonedDateTimeFormat.Format(group.Created.InZone(system.Zone))}")
+                .AddField("Priority", group.Priority.ToString());
+
+            if (group.Privacy.CanAccess(ctx)) eb.WithDescription(group.Description);
+            if (group.Privacy.CanAccess(ctx) && group.AvatarUrl != null) eb.WithThumbnailUrl(group.AvatarUrl);
+
+            using var conn = await _db.Obtain();
+            var publicMemberCount = await conn.QuerySingleAsync<int>("select count(*) from group_member left join members on group_member.member = members.id where group_member.group_id = @Id and members.member_privacy = 1", new { Id = group.Id });
+
+            eb.AddField($"Members ({publicMemberCount})", $"Type `pk;group {group.Hid} list`.");
+            return eb.Build();
         }
     }
 }

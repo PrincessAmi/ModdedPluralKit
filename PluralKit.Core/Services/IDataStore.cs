@@ -263,6 +263,8 @@ namespace PluralKit.Core {
         Task<PKGroup> CreateGroup(PKSystem system, string name);
         
         Task<PKGroup> GetGroupByHid(string hid);
+        
+        Task<PKGroup> GetGroupByName(PKSystem system, string name);
 
         /// <summary>
         /// Gets a message and its information by its ID.

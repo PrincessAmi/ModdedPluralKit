@@ -210,6 +210,24 @@ namespace PluralKit.Bot
             return member;
         }
 
+        public async Task<PKGroup> PeekGroup()
+        {
+            var input = PeekArgument();
+
+            // Same lookup mechanism as members above (first by name, then by hid)
+            if (_senderSystem != null && await _data.GetGroupByName(_senderSystem, input) is PKGroup groupByName)
+                return groupByName;
+
+            return await _data.GetGroupByHid(input);
+        }
+        
+        public async Task<PKGroup> MatchGroup()
+        {
+            var group = await PeekGroup();
+            if (group != null) PopArgument();
+            return group;
+        }
+
         public string CreateMemberNotFoundError(string input)
         {
             // TODO: does this belong here?
@@ -223,6 +241,21 @@ namespace PluralKit.Bot
             if (_senderSystem != null)
                 return $"Member with name \"{input.SanitizeMentions()}\" not found. Note that a member ID is 5 characters long.";
             return $"Member not found. Note that a member ID is 5 characters long.";
+        }
+        
+        public string CreateGroupNotFoundError(string input)
+        {
+            // TODO: does this belong here?
+            if (input.Length == 5)
+            {
+                if (_senderSystem != null)
+                    return $"Group with ID or name \"{input.SanitizeMentions()}\" not found.";
+                return $"Group with ID \"{input.SanitizeMentions()}\" not found."; // Accounts without systems can't query by name
+            }
+
+            if (_senderSystem != null)
+                return $"Group with name \"{input.SanitizeMentions()}\" not found. Note that a group ID is 5 characters long.";
+            return $"Group not found. Note that a group ID is 5 characters long.";
         }
 
         public Context CheckSystem()
